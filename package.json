@@ -1,7 +1,7 @@
 {
   "name": "MOHD ZUBAIR",
   "version": "1.0.0",
-  "description": "API response format transformation service",
+  "description": "Custom API formatter",
   "main": "api/index.js",
   "scripts": {
     "start": "node api/index.js"
