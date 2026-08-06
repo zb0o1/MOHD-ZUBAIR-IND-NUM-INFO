@@ -1,21 +1,20 @@
-// api/index.js
-
 export default async function handler(req, res) {
-  // CORS Headers (Optional: Agar browser se frontend call karna ho)
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  // CORS Enable
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Content-Type', 'application/json');
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  const sendFormattedJson = (statusCode, data) => {
+    return res.status(statusCode).send(JSON.stringify(data, null, 2));
+  };
 
-  // 1. Query parameter validation
   const { number } = req.query;
 
-  if (!number || number.trim().length !== 10 || isNaN(number)) {
-    return res.status(400).json({
+  // Agar number blank ho
+  if (!number) {
+    return sendFormattedJson(400, {
       success: false,
-      message: "Number required (10 digits)",
+      message: "Number required",
       example: "/api?number=1234567890",
       developer: "MOHD ZUBAIR",
       telegram: "t.me/ZB15y"
@@ -23,78 +22,71 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 2. Upstream API call (Generic Example URL)
-    const upstreamUrl = `https://api-pro-v2.vercel.app/key/576f1e132326cee10f887ec38ccae1/get_data?number=${encodeURIComponent(number)}`;
-    const response = await fetch(upstreamUrl, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json"
-      }
-    });
+    const apiUrl = `https://api-pro-v2.vercel.app/key/576f1e132326cee10f887ec38ccae1/get_data?number=${number}`;
+    const response = await fetch(apiUrl);
+    const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(`Upstream API returned status: ${response.status}`);
-    }
+    // Original API se SARE records nikalna
+    const records = data?.result?.result?.result?.result || [];
 
-    const rawData = await response.json();
+    // Filter hata diya gaya hai! Ab jitne bhi records aayenge sab show honge.
+    if (records.length > 0) {
+      const getValidValue = (val) => {
+        if (val === null || val === undefined || String(val).trim() === "") {
+          return "null"; 
+        }
+        return String(val).trim();
+      };
 
-    // 3. Response validation check
-    if (!rawData || !rawData.result) {
-      return res.status(404).json({
+      // Shuruwat ka response format
+      const finalResponse = {
+        success: true,
+        message: "Records found successfully",
+        total_records: records.length // Ye batayega total kitne records mile 
+      };
+
+      // Loop lagakar SARE records ko record_1, record_2 banana
+      records.forEach((item, index) => {
+        const rawAddress = item.address || "";
+        const parts = rawAddress.split('!').map(p => p.trim()).filter(Boolean);
+
+        finalResponse[`record_${index + 1}`] = {
+          number: getValidValue(item.num) !== "null" ? getValidValue(item.num) : number,
+          name: getValidValue(item.name),
+          father_name: getValidValue(item.fname),
+          alt_number: getValidValue(item.alt),
+          aadhar: getValidValue(item.aadhar), 
+          email: getValidValue(item.email),   // Email aadhar ke niche
+          circle: getValidValue(item.circle),
+          state: parts.length > 1 ? parts[parts.length - 2] : "null",
+          district: parts.length > 2 ? parts[parts.length - 3] : "null",
+          "village/city": parts.length > 4 ? parts[1] : "null",
+          landmark: parts.length > 4 ? parts[2] : "null",
+          pincode: parts.length > 0 ? parts[parts.length - 1] : "null",
+          full_address: parts.length > 0 ? parts.join(', ') : "null"
+        };
+      });
+
+      // Saare records ke baad ekdum LAST me Developer details daalna
+      finalResponse.developer = "MOHD ZUBAIR";
+      finalResponse.telegram = "t.me/ZB15y";
+
+      return sendFormattedJson(200, finalResponse);
+
+    } else {
+      // Agar record na mile
+      return sendFormattedJson(404, {
         success: false,
-        message: "No records found",
+        message: "No record found",
         developer: "MOHD ZUBAIR",
         telegram: "t.me/ZB15y"
       });
     }
 
-    // 4. Transform & Format Data
-    // Agar address "!12!bhatpar!..." jaise format mein ho toh usko split karke clean fields bana sakte hain
-    const formattedResults = [];
-    const resultsObj = rawData.result;
-
-    for (const key in resultsObj) {
-      const item = resultsObj[key];
-      
-      // Address parser example (delimiter separated strings ko split karna)
-      const addressParts = (item.address || "").split("!").filter(Boolean);
-      const landmark = addressParts[0] || "N/A";
-      const villageCity = addressParts[1] || "N/A";
-      const district = addressParts[4] || "N/A";
-      const state = addressParts[6] || "N/A";
-      const pincode = addressParts[7] || "N/A";
-
-      formattedResults.push({
-        number: item.num || number,
-        name: item.name || "N/A",
-        father_name: item.fname || "N/A",
-        alt_number: item.alt || "N/A",
-        email: item.email || "N/A",
-        aadhar: item.aadhar || "N/A",
-        circle: item.circle || "N/A",
-        state: state,
-        district: district,
-        village_city: villageCity,
-        landmark: landmark,
-        pincode: pincode,
-        full_address: addressParts.join(", ")
-      });
-    }
-
-    // 5. Final Formatted JSON Response
-    return res.status(200).json({
-      success: true,
-      total_records: formattedResults.length,
-      developer: "MOHD ZUBAIR",
-      telegram: "t.me/ZB15y",
-      data: formattedResults
-    });
-
   } catch (error) {
-    return res.status(500).json({
+    return sendFormattedJson(500, {
       success: false,
-      message: "Internal Server Error or Upstream Service Unavailable",
-      error: error.message,
+      message: "Server Error, please try again",
       developer: "MOHD ZUBAIR",
       telegram: "t.me/ZB15y"
     });
