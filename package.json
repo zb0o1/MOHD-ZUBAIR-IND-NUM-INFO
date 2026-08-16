@@ -1,14 +1,12 @@
 {
-  "name": "custom-number-api",
+  "name": "custom-number-formatter-api",
   "version": "1.0.0",
   "description": "Custom API Formatter by MOHD ZUBAIR",
   "type": "module",
-  "main": "server.js",
+  "main": "api/index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node api/index.js",
+    "dev": "node api/index.js"
   },
-  "dependencies": {
-    "express": "^4.21.2",
-    "cors": "^2.8.5"
-  }
+  "dependencies": {}
 }
