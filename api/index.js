@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     return sendFormattedJson(400, {
       success: false,
       message: "Number required",
-      example: "/api?number=895428xxxx",
+      example: "/api?number=8954285xxx",
       developer: "MOHD ZUBAIR",
       telegram: "t.me/ZB15y"
     });
