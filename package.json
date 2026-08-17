@@ -1,9 +1,6 @@
 {
-  "name": "MOHD ZUBAIR",
+  "name": "mohd-zubair-api",
   "version": "1.0.0",
-  "description": "Custom API formatter",
-  "main": "api/index.js",
-  "scripts": {
-    "start": "node api/index.js"
-  }
+  "type": "module",
+  "description": "Custom API formatter"
 }
